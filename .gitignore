@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+/build/
+/app/build/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Android Studio / IntelliJ
+*.iml
+.idea/
+/.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Build outputs
+/app/release/
+/app/debug/
+*.apk
+*.aab
+*.ap_
+
+# Local config (never commit)
+local.properties
+google-services.json
+keystore.properties
+*.jks
+*.keystore
+
+# Kotlin
+.kotlin/
+
+# Room schema — commit these for migration safety
+# app/schemas/  <- intentionally NOT ignored
+
+# Test reports (CI artifacts, not source)
+/app/build/reports/
+/app/build/test-results/
