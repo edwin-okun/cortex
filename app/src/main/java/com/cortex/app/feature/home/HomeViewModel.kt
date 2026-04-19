@@ -1,0 +1,80 @@
+package com.cortex.app.feature.home
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.cortex.app.domain.repository.ContentRepository
+import com.cortex.app.domain.repository.ProgressRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+class HomeViewModel(
+    private val contentRepository: ContentRepository,
+    private val progressRepository: ProgressRepository,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(HomeUiState())
+    val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            combine(
+                progressRepository.observeAllProgress(),
+            ) { (allProgress) ->
+                val lessons = contentRepository.getAllLessons()
+
+                val resumeProgress = allProgress
+                    .filter { it.masteredAt == null }
+                    .maxByOrNull { it.lastOpenedAt }
+
+                val resumeLesson = resumeProgress?.let { p ->
+                    contentRepository.getLesson(p.lessonId)?.let { lesson ->
+                        ResumeLessonInfo(
+                            lessonId = p.lessonId,
+                            title = lesson.title,
+                            currentStage = p.currentStage,
+                            totalStages = lesson.stages.size,
+                        )
+                    }
+                }
+
+                // Only surface a new lesson if nothing is in-progress
+                val newLesson = if (resumeLesson == null) {
+                    lessons.firstOrNull { l -> allProgress.none { p -> p.lessonId == l.id } }
+                } else null
+
+                HomeUiState(
+                    greeting = "Good morning.",
+                    dueReviewCount = 0,
+                    newLessonTitle = newLesson?.title,
+                    newLessonId = newLesson?.id,
+                    streakDays = 0,
+                    isLoading = false,
+                    resumeLesson = resumeLesson,
+                )
+            }.collect { newState ->
+                _state.update { newState }
+            }
+        }
+    }
+}
+
+data class HomeUiState(
+    val greeting: String = "Good morning.",
+    val dueReviewCount: Int = 0,
+    val newLessonTitle: String? = null,
+    val newLessonId: String? = null,
+    val streakDays: Int = 0,
+    val isLoading: Boolean = true,
+    val resumeLesson: ResumeLessonInfo? = null,
+)
+
+data class ResumeLessonInfo(
+    val lessonId: String,
+    val title: String,
+    val currentStage: Int,
+    val totalStages: Int,
+)
