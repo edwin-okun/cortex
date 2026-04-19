@@ -12,12 +12,17 @@ import androidx.compose.ui.Modifier
 import com.cortex.app.core.navigation.CortexNavHost
 import com.cortex.app.core.ui.theme.CortexColors
 import com.cortex.app.core.ui.theme.CortexTheme
+import org.koin.compose.KoinContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        setContent { CortexApp() }
+        setContent {
+            KoinContext {
+                CortexApp()
+            }
+        }
     }
 }
 
