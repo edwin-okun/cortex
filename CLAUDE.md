@@ -41,11 +41,11 @@ Dark-only editorial aesthetic. See `core/ui/theme/`:
 
 ## Milestone roadmap
 
-- **M0 (DONE):** project skeleton, theme, nav, Home screen real-designed, placeholders for Library/Review/Progress, one HomeViewModel unit test
-- **M1 (NEXT):** domain models, lesson-authoring Kotlin DSL, `LessonCatalog`, `ContentRepository`, `GetLessonUseCase`, generic `LessonScreen` + `LessonViewModel`, author **Two Pointers** end-to-end
-- **M2:** Room schema, `ProgressRepository`, lesson-resume
-- **M3:** FSRS-4.5 scheduler port, Review screen
-- **M4:** Daily session builder + interleaving
+- ✅ **M0:** project skeleton, `CortexTheme`, Koin bootstrap, `HomeScreen` designed, `CortexNavHost`, placeholder screens, test stack verified
+- ✅ **M1:** domain models (`Lesson`, `LessonStage`, `Track`, `Tier`, `VisualSpec`), Kotlin DSL (`LessonDsl.kt`), `ContentRepositoryImpl`, `GetLessonUseCase`, `LessonScreen` + `LessonViewModel`, Two Pointers authored end-to-end
+- ✅ **M2:** Room v1 schema (`LessonProgressEntity`, `PracticeAttemptEntity`), `ProgressRepositoryImpl`, lesson-resume from saved stage, `PracticeAttempt` tracking
+- ✅ **M3:** FSRS-6 scheduler (`Fsrs.kt`, 21-param `FsrsParameters`), Room v2 migration (`ReviewCardEntity`), `SchedulerRepositoryImpl`, Review screen (`ReviewViewModel` + `ReviewScreen`), HomeViewModel wired to due count
+- **M4 (NEXT):** Daily session builder + interleaving
 - **M5:** Compose Canvas visualization DSL (ArrayPointer, Graph, Tree visuals)
 - **M6:** Library + Progress screens
 - **M7:** author 15 algorithm + 10 wealth lessons
@@ -77,17 +77,19 @@ Each lesson spawns review cards that enter the FSRS queue. Mastery criteria:
 
 ## What's done
 
-- Gradle wiring, version catalog, Compose BOM 2024.10
-- `CortexTheme` + full token set
-- Koin bootstrapped in `CortexApplication`
-- `MainActivity` hosts a single `CortexNavHost`
-- `HomeScreen` fully designed (editorial dark theme, TODAY card, MetaTiles, footer)
-- `Library / Review / Progress` are `ComingSoonScreen` placeholders with honest milestone labels
-- `HomeViewModelTest` with Turbine verifies the test stack works
+### M0 — Skeleton
+Gradle wiring, version catalog, Compose BOM 2024.10. `CortexTheme` + full token set (`CortexColors`, `CortexSpacing`, `CortexTypography`). Koin bootstrapped in `CortexApplication`. `MainActivity` hosts a single `CortexNavHost`. `HomeScreen` fully designed (editorial dark theme, TODAY card, MetaTiles, footer). `Library / Review / Progress` are `ComingSoonScreen` placeholders. `HomeViewModelTest` with Turbine verifies the test stack.
 
-## Open items for M1
+### M1 — Lesson engine
+Domain models: `Lesson`, `LessonStage` (sealed: Hook, Intuition, WorkedExample, FadedPractice, TransferProblem), `Track`, `Tier`, `VisualSpec` (sealed, text fallback only — Canvas is M5), `LessonReviewCard`. Kotlin DSL (`LessonDsl.kt`) with builder pattern. `ContentRepositoryImpl` backed by `LessonCatalog` (in-memory). `GetLessonUseCase`. `LessonScreen` + `LessonViewModel` (stage paging, `SavedStateHandle`). **Two Pointers** authored end-to-end as the reference lesson.
 
-User asked for type-safe lesson authoring. Build this as a Kotlin DSL, not JSON:
+### M2 — Progress persistence
+Room v1: `LessonProgressEntity` + `LessonProgressDao`, `PracticeAttemptEntity` + `PracticeAttemptDao`. `ProgressRepositoryImpl` with upsert-on-advance semantics: `startedAt` set on first advance, `masteredAt` set when `newStage == totalStages` and never overwritten. Lesson resume reads `currentStage` from DB on init. `ProgressRepositoryImplTest` (6 tests, Robolectric + Turbine).
+
+### M3 — FSRS scheduler + Review screen
+**Scheduler:** FSRS-6 (21 params, py-fsrs reference vectors validated). Pure Kotlin, zero Android deps. `FsrsParameters.Default` uses empirically-optimised weights (100M+ reviews). `Fsrs.schedule()` covers Learning → Review → Relearning state machine. 8 unit tests including 2 exact reference vector checks. **Persistence:** Room v2 migration adds `review_cards` table (`ReviewCardEntity`). `SchedulerRepositoryImpl` injectable `Clock` for test determinism; `seedCardsForLesson` is idempotent. **Review screen:** `ReviewViewModel` loads queue once on init (in-memory, no mid-session flicker), shows FSRS preview intervals on grade buttons. `ReviewScreen` with progress bar, tap-to-reveal, 4 grade buttons (Again/Hard/Good/Easy). `HomeViewModel` wired to `observeDueCount()`. 7 integration tests (`SchedulerRepositoryImplTest`).
+
+## Lesson authoring DSL
 
 ```kotlin
 val TwoPointers = lesson("two-pointers") {
@@ -105,7 +107,122 @@ val TwoPointers = lesson("two-pointers") {
 }
 ```
 
-Canvas visualizations are M5. In M1, leave `VisualSpec` as a sealed class but render a text-only fallback for now.
+Canvas visualizations are M5. `VisualSpec` is a sealed class; `LessonScreen` renders a text-only fallback until then.
+
+## Architectural decisions log
+
+- **FSRS-6 over 4.5:** 21 params vs 17; matches current py-fsrs/Anki standard; verified test vectors available. Trainable decay `w[20]=0.1542` instead of fixed `-0.5`.
+- **`LessonReviewCard` vs `ReviewCard`:** Authored DSL type renamed to `LessonReviewCard` to avoid collision with the runtime `ReviewCard` domain model (FSRS state + scheduling fields).
+- **`step = -1` sentinel in `ReviewCardEntity`:** Room can't store nullable `Int` without a wrapper; `-1` means "graduated to Review state" in the entity layer; mappers convert to `Int?` at the domain boundary.
+- **In-memory review queue in `ReviewViewModel`:** Loads `observeDueCards().first()` once on init. Prevents the current card from disappearing if DB updates mid-session (e.g., background clock tick).
+- **Injectable `Clock` in `SchedulerRepositoryImpl`:** `kotlinx.datetime.Clock` injected (defaults to `Clock.System`) so tests can pass a fixed `Instant` without mocking system time.
+- **`stopKoin()` in Robolectric `@After`:** Robolectric spins up `CortexApplication` which calls `startKoin()`; without `stopKoin()` in teardown, successive test methods throw `KoinApplicationAlreadyStartedException`.
+- **`observeDueCount()` is a point-in-time snapshot:** The query passes `clock.now()` at subscription time, not a live clock. Cards become "newly due" only when the user re-opens the app and a new subscription is created. Acceptable for M3; revisit in M4.
+
+## Known issues / tech debt
+
+- `observeDueCount()` / `observeDueCards()` snapshot `now` at subscription time — doesn't react as cards cross their `dueAt` threshold while the app is open. Fix in M4 when building the daily session builder (pass a periodic ticker or use `conflate + delay`).
+- `VisualSpec` subtypes (`ArrayPointerVisual`, etc.) are defined but all render the same text fallback in `LessonScreen`. Proper Canvas rendering is M5.
+- `Library` and `Progress` screens are `ComingSoonScreen` stubs. M6 work.
+- No migration test — Room migration correctness is asserted only at runtime. Consider adding a `MigrationTest` before v2→v3.
+- FSRS weights are hardcoded defaults. User-specific weight training (from review history) is not implemented; deferred to post-MVP.
+
+## File map
+
+```
+app/src/main/java/com/cortex/app/
+│
+├── CortexApplication.kt          Koin init
+├── MainActivity.kt               single-Activity host
+│
+├── core/
+│   ├── database/
+│   │   └── CortexDatabase.kt     Room DB, v2, MIGRATION_1_2
+│   ├── di/
+│   │   └── AppModule.kt          Koin module (DB, DAOs, repos, use cases, ViewModels)
+│   ├── navigation/
+│   │   ├── CortexRoute.kt        @Serializable route sealed class
+│   │   └── CortexNavHost.kt      NavHost + screen wiring
+│   └── ui/
+│       ├── components/
+│       │   ├── ComingSoonScreen.kt
+│       │   └── CortexTopBar.kt
+│       └── theme/
+│           ├── Color.kt          CortexColors palette
+│           ├── Spacing.kt        CortexSpacing tokens
+│           ├── Theme.kt          CortexTheme MaterialTheme wrapper
+│           └── Typography.kt     type scale
+│
+├── data/
+│   ├── local/
+│   │   ├── content/
+│   │   │   ├── LessonDsl.kt      Kotlin DSL builders (lesson {}, reviewCards {}, etc.)
+│   │   │   └── lessons/
+│   │   │       └── TwoPointers.kt  reference lesson, fully authored
+│   │   ├── dao/
+│   │   │   ├── LessonProgressDao.kt
+│   │   │   ├── PracticeAttemptDao.kt
+│   │   │   └── ReviewCardDao.kt
+│   │   └── entity/
+│   │       ├── LessonProgressEntity.kt
+│   │       ├── PracticeAttemptEntity.kt
+│   │       └── ReviewCardEntity.kt  step=-1 sentinel for Review state
+│   └── repository/
+│       ├── ContentRepositoryImpl.kt  in-memory LessonCatalog
+│       ├── ProgressRepositoryImpl.kt upsert-on-advance, masteredAt guard
+│       └── SchedulerRepositoryImpl.kt  FSRS grading, idempotent seed, injectable Clock
+│
+├── domain/
+│   ├── model/
+│   │   ├── Lesson.kt             Lesson + LessonStage sealed class + LessonReviewCard
+│   │   ├── LessonProgress.kt
+│   │   ├── PracticeAttempt.kt
+│   │   ├── ReviewCard.kt         runtime card with full FSRS state
+│   │   ├── Tier.kt
+│   │   ├── Track.kt
+│   │   └── VisualSpec.kt         sealed (text fallback until M5)
+│   ├── repository/
+│   │   ├── ContentRepository.kt
+│   │   ├── ProgressRepository.kt
+│   │   └── SchedulerRepository.kt
+│   ├── scheduler/
+│   │   ├── CardState.kt          Learning | Review | Relearning
+│   │   ├── Fsrs.kt               FSRS-6 object (schedule, nextDue, retrievability)
+│   │   ├── FsrsCard.kt           pure Kotlin card state
+│   │   ├── FsrsParameters.kt     21 weights, Default companion
+│   │   └── Rating.kt             Again | Hard | Good | Easy
+│   └── usecase/
+│       └── GetLessonUseCase.kt
+│
+└── feature/
+    ├── home/
+    │   ├── HomeScreen.kt         TODAY card, MetaTiles, due-count badge
+    │   └── HomeViewModel.kt      combines progress + due count
+    ├── lesson/
+    │   ├── LessonScreen.kt       stage pager (Hook→Transfer)
+    │   └── LessonViewModel.kt    stage advance, seeds FSRS cards on completion
+    ├── library/
+    │   ├── LibraryScreen.kt      ComingSoonScreen (M6)
+    │   └── LibraryViewModel.kt
+    ├── progress/
+    │   ├── ProgressScreen.kt     ComingSoonScreen (M6)
+    │   └── ProgressViewModel.kt
+    └── review/
+        ├── ReviewScreen.kt       progress bar, tap-to-reveal, 4 grade buttons
+        └── ReviewViewModel.kt    in-memory queue, FSRS preview intervals
+
+app/src/test/java/com/cortex/app/
+├── domain/scheduler/
+│   └── FsrsTest.kt              8 tests incl. 2 py-fsrs reference vectors
+├── data/repository/
+│   ├── ProgressRepositoryImplTest.kt  6 Robolectric integration tests
+│   └── SchedulerRepositoryImplTest.kt 7 Robolectric integration tests
+└── feature/
+    ├── home/
+    │   └── HomeViewModelTest.kt
+    └── lesson/
+        └── LessonViewModelTest.kt
+```
 
 ## User context
 
