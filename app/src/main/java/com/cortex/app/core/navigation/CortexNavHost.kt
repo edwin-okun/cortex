@@ -21,7 +21,8 @@ fun CortexNavHost(
     ) {
         composable<CortexRoute.Home> {
             HomeScreen(
-                onBeginSession = { lessonId -> navController.navigate(CortexRoute.Lesson(lessonId)) },
+                onBeginReview = { navController.navigate(CortexRoute.Review) },
+                onBeginLesson = { lessonId -> navController.navigate(CortexRoute.Lesson(lessonId)) },
                 onContinueLesson = { lessonId -> navController.navigate(CortexRoute.Lesson(lessonId)) },
                 onOpenLibrary = { navController.navigate(CortexRoute.Library) },
                 onOpenProgress = { navController.navigate(CortexRoute.Progress) },
