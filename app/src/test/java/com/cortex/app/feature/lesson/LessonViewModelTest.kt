@@ -9,6 +9,7 @@ import com.cortex.app.domain.model.PracticeAttempt
 import com.cortex.app.domain.model.Tier
 import com.cortex.app.domain.model.Track
 import com.cortex.app.domain.repository.ProgressRepository
+import com.cortex.app.domain.repository.SchedulerRepository
 import com.cortex.app.domain.usecase.GetLessonUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -71,8 +72,12 @@ class LessonViewModelTest {
         coEvery { recordPracticeAttempt(any(), any(), any()) } just runs
     }
 
-    private fun makeUseCase(lesson: Lesson?): GetLessonUseCase = mockk {
-        every { invoke(any()) } returns lesson
+    private fun makeUseCase(lesson: Lesson?): GetLessonUseCase = mockk<GetLessonUseCase>().also {
+        every { it.invoke(any()) } returns lesson
+    }
+
+    private fun makeSchedulerRepo(): SchedulerRepository = mockk {
+        coEvery { seedCardsForLesson(any(), any()) } just runs
     }
 
     private fun buildVm(
@@ -83,6 +88,7 @@ class LessonViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf("lessonId" to lessonId)),
         getLessonUseCase = makeUseCase(lesson),
         progressRepository = makeProgressRepo(progress),
+        schedulerRepository = makeSchedulerRepo(),
     )
 
     @Test
@@ -128,6 +134,7 @@ class LessonViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("lessonId" to "test-lesson")),
             getLessonUseCase = makeUseCase(lesson),
             progressRepository = progressRepo,
+            schedulerRepository = makeSchedulerRepo(),
         )
 
         vm.state.test {

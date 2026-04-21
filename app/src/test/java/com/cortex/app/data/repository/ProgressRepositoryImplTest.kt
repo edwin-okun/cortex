@@ -20,6 +20,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.context.stopKoin
 import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -45,6 +46,7 @@ class ProgressRepositoryImplTest {
     fun tearDown() {
         Dispatchers.resetMain()
         db.close()
+        stopKoin()
     }
 
     @Test

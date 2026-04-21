@@ -3,6 +3,7 @@ package com.cortex.app.feature.home
 import app.cash.turbine.test
 import com.cortex.app.domain.repository.ContentRepository
 import com.cortex.app.domain.repository.ProgressRepository
+import com.cortex.app.domain.repository.SchedulerRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +43,10 @@ class HomeViewModelTest {
         val progressRepo = mockk<ProgressRepository> {
             every { observeAllProgress() } returns flowOf(emptyList())
         }
-        return HomeViewModel(contentRepo, progressRepo)
+        val schedulerRepo = mockk<SchedulerRepository> {
+            every { observeDueCount() } returns flowOf(0)
+        }
+        return HomeViewModel(contentRepo, progressRepo, schedulerRepo)
     }
 
     @Test
