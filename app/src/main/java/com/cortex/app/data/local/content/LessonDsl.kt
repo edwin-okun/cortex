@@ -3,7 +3,7 @@ package com.cortex.app.data.local.content
 import com.cortex.app.domain.model.Lesson
 import com.cortex.app.domain.model.LessonStage
 import com.cortex.app.domain.model.PracticeItem
-import com.cortex.app.domain.model.ReviewCard
+import com.cortex.app.domain.model.LessonReviewCard
 import com.cortex.app.domain.model.Tier
 import com.cortex.app.domain.model.Track
 import com.cortex.app.domain.model.VisualSpec
@@ -17,7 +17,7 @@ class LessonBuilder(val id: String) {
     var title: String = ""
 
     private val stages = mutableListOf<LessonStage>()
-    private val cards = mutableListOf<ReviewCard>()
+    private val cards = mutableListOf<LessonReviewCard>()
 
     fun hook(block: HookBuilder.() -> Unit) { stages += HookBuilder().apply(block).build() }
     fun intuition(block: IntuitionBuilder.() -> Unit) { stages += IntuitionBuilder().apply(block).build() }
@@ -71,7 +71,7 @@ class TransferBuilder {
 }
 
 class ReviewCardsBuilder {
-    private val cards = mutableListOf<ReviewCard>()
-    fun card(id: String, front: String, back: String) { cards += ReviewCard(id, front, back) }
-    fun build(): List<ReviewCard> = cards.toList()
+    private val cards = mutableListOf<LessonReviewCard>()
+    fun card(id: String, front: String, back: String) { cards += LessonReviewCard(id, front, back) }
+    fun build(): List<LessonReviewCard> = cards.toList()
 }

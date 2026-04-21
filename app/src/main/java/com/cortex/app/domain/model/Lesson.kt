@@ -6,7 +6,7 @@ data class Lesson(
     val tier: Tier,
     val title: String,
     val stages: List<LessonStage>,
-    val reviewCards: List<ReviewCard>,
+    val reviewCards: List<LessonReviewCard>,
 )
 
 sealed class LessonStage {
@@ -25,7 +25,8 @@ data class PracticeItem(
     val answer: String,
 )
 
-data class ReviewCard(
+/** Authored card from the lesson DSL — prompt/answer only, no scheduling state. */
+data class LessonReviewCard(
     val id: String,
     val front: String,
     val back: String,
