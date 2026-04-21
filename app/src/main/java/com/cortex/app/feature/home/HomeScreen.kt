@@ -37,7 +37,8 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(
-    onBeginSession: (lessonId: String) -> Unit,
+    onBeginReview: () -> Unit,
+    onBeginLesson: (lessonId: String) -> Unit,
     onContinueLesson: (lessonId: String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenProgress: () -> Unit,
@@ -69,7 +70,11 @@ fun HomeScreen(
         TodayCard(
             dueReviewCount = state.dueReviewCount,
             newLessonTitle = state.newLessonTitle,
-            onBegin = { state.newLessonId?.let(onBeginSession) },
+            // Reviews take priority; fall back to starting a new lesson
+            onBegin = {
+                if (state.dueReviewCount > 0) onBeginReview()
+                else state.newLessonId?.let(onBeginLesson)
+            },
         )
         Spacer(Modifier.height(CortexSpacing.lg))
         MetaRow(

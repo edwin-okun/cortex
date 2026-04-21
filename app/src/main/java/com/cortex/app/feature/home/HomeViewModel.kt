@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cortex.app.domain.repository.ContentRepository
 import com.cortex.app.domain.repository.ProgressRepository
+import com.cortex.app.domain.repository.SchedulerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 class HomeViewModel(
     private val contentRepository: ContentRepository,
     private val progressRepository: ProgressRepository,
+    private val schedulerRepository: SchedulerRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -23,7 +25,8 @@ class HomeViewModel(
         viewModelScope.launch {
             combine(
                 progressRepository.observeAllProgress(),
-            ) { (allProgress) ->
+                schedulerRepository.observeDueCount(),
+            ) { allProgress, dueCount ->
                 val lessons = contentRepository.getAllLessons()
 
                 val resumeProgress = allProgress
@@ -41,14 +44,13 @@ class HomeViewModel(
                     }
                 }
 
-                // Only surface a new lesson if nothing is in-progress
                 val newLesson = if (resumeLesson == null) {
                     lessons.firstOrNull { l -> allProgress.none { p -> p.lessonId == l.id } }
                 } else null
 
                 HomeUiState(
                     greeting = "Good morning.",
-                    dueReviewCount = 0,
+                    dueReviewCount = dueCount,
                     newLessonTitle = newLesson?.title,
                     newLessonId = newLesson?.id,
                     streakDays = 0,

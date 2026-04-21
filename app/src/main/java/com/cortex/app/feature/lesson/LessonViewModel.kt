@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cortex.app.domain.model.Lesson
 import com.cortex.app.domain.repository.ProgressRepository
+import com.cortex.app.domain.repository.SchedulerRepository
 import com.cortex.app.domain.usecase.GetLessonUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,7 @@ class LessonViewModel(
     savedStateHandle: SavedStateHandle,
     private val getLessonUseCase: GetLessonUseCase,
     private val progressRepository: ProgressRepository,
+    private val schedulerRepository: SchedulerRepository,
 ) : ViewModel() {
 
     val lessonId: String = checkNotNull(savedStateHandle["lessonId"])
@@ -53,6 +55,10 @@ class LessonViewModel(
         _state.update { it.copy(currentStageIndex = nextStage) }
         viewModelScope.launch {
             progressRepository.recordStageAdvance(lessonId, nextStage, lesson.stages.size)
+            // Seed review cards when the final stage is completed
+            if (nextStage >= lesson.stages.size && lesson.reviewCards.isNotEmpty()) {
+                schedulerRepository.seedCardsForLesson(lessonId, lesson.reviewCards)
+            }
         }
     }
 
