@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cortex.app.domain.repository.ContentRepository
 import com.cortex.app.domain.repository.ProgressRepository
 import com.cortex.app.domain.repository.SchedulerRepository
+import com.cortex.app.domain.usecase.selectAvailableNewLessons
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +31,7 @@ class HomeViewModel(
                 val lessons = contentRepository.getAllLessons()
 
                 val resumeProgress = allProgress
-                    .filter { it.masteredAt == null && it.currentStage > 0 }
+                    .filter { it.masteredAt == null }
                     .maxByOrNull { it.lastOpenedAt }
 
                 val resumeLesson = resumeProgress?.let { p ->
@@ -44,17 +45,16 @@ class HomeViewModel(
                     }
                 }
 
-                val newLesson = if (resumeLesson == null) {
-                    lessons.firstOrNull { l ->
-                        allProgress.none { p -> p.lessonId == l.id && p.currentStage > 0 }
-                    }
-                } else null
+                val newLesson = selectAvailableNewLessons(
+                    allLessons = lessons,
+                    allProgress = allProgress,
+                    maxNewLessons = 1,
+                ).firstOrNull()
 
                 HomeUiState(
                     greeting = "Good morning.",
                     dueReviewCount = dueCount,
                     newLessonTitle = newLesson?.title,
-                    newLessonId = newLesson?.id,
                     streakDays = 0,
                     isLoading = false,
                     resumeLesson = resumeLesson,
@@ -70,7 +70,6 @@ data class HomeUiState(
     val greeting: String = "Good morning.",
     val dueReviewCount: Int = 0,
     val newLessonTitle: String? = null,
-    val newLessonId: String? = null,
     val streakDays: Int = 0,
     val isLoading: Boolean = true,
     val resumeLesson: ResumeLessonInfo? = null,

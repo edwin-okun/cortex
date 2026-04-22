@@ -37,8 +37,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(
-    onBeginReview: () -> Unit,
-    onBeginLesson: (lessonId: String) -> Unit,
+    onBeginSession: () -> Unit,
     onContinueLesson: (lessonId: String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenProgress: () -> Unit,
@@ -70,11 +69,7 @@ fun HomeScreen(
         TodayCard(
             dueReviewCount = state.dueReviewCount,
             newLessonTitle = state.newLessonTitle,
-            // Reviews take priority; fall back to starting a new lesson
-            onBegin = {
-                if (state.dueReviewCount > 0) onBeginReview()
-                else state.newLessonId?.let(onBeginLesson)
-            },
+            onBegin = onBeginSession,
         )
         Spacer(Modifier.height(CortexSpacing.lg))
         MetaRow(
@@ -175,6 +170,9 @@ private fun TodayCard(
     newLessonTitle: String?,
     onBegin: () -> Unit,
 ) {
+    // Enabled only when the session will have actual content: reviews or a new lesson.
+    // A resume-only lesson doesn't count — the CONTINUE card handles that separately.
+    val hasContent = dueReviewCount > 0 || newLessonTitle != null
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(4.dp),
@@ -189,7 +187,7 @@ private fun TodayCard(
             )
             Spacer(Modifier.height(CortexSpacing.md))
 
-            if (dueReviewCount == 0 && newLessonTitle == null) {
+            if (!hasContent) {
                 Text(
                     text = "All caught up.",
                     style = MaterialTheme.typography.headlineMedium,
@@ -197,7 +195,7 @@ private fun TodayCard(
                 )
                 Spacer(Modifier.height(CortexSpacing.sm))
                 Text(
-                    text = "No new lessons or reviews due.",
+                    text = "No reviews due. Continue your lesson above.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = CortexColors.Muted,
                 )
@@ -207,7 +205,7 @@ private fun TodayCard(
                     Spacer(Modifier.height(CortexSpacing.sm))
                 }
                 if (newLessonTitle != null) {
-                    StatLine(value = "1", label = "new lesson: $newLessonTitle")
+                    StatLine(value = "→", label = "Begin: $newLessonTitle")
                 }
             }
 
@@ -224,7 +222,7 @@ private fun TodayCard(
                     disabledContainerColor = CortexColors.Rule,
                     disabledContentColor = CortexColors.Muted,
                 ),
-                enabled = dueReviewCount > 0 || newLessonTitle != null,
+                enabled = hasContent,
             ) {
                 Text(
                     text = "BEGIN SESSION",
