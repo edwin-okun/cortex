@@ -18,4 +18,7 @@ sealed interface CortexRoute {
 
     @Serializable
     data object Progress : CortexRoute
+
+    @Serializable
+    data object Session : CortexRoute
 }
