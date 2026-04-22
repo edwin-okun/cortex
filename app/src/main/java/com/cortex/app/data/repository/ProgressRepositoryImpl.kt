@@ -59,8 +59,22 @@ class ProgressRepositoryImpl(
         attemptDao.getAttemptsForLesson(lessonId).map { list -> list.map { it.toDomain() } }
 
     override suspend fun recordLessonOpened(lessonId: String) {
-        val existing = progressDao.getByLessonIdOnce(lessonId) ?: return
-        progressDao.upsert(existing.copy(lastOpenedAt = System.currentTimeMillis()))
+        val now = System.currentTimeMillis()
+        val existing = progressDao.getByLessonIdOnce(lessonId)
+        if (existing == null) {
+            progressDao.upsert(
+                LessonProgressEntity(
+                    lessonId = lessonId,
+                    currentStage = 0,
+                    stagesCompleted = 0,
+                    startedAt = now,
+                    masteredAt = null,
+                    lastOpenedAt = now,
+                )
+            )
+        } else {
+            progressDao.upsert(existing.copy(lastOpenedAt = now))
+        }
     }
 }
 
