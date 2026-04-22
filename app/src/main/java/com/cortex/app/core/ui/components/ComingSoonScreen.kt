@@ -23,9 +23,9 @@ import com.cortex.app.core.ui.theme.CortexSpacing
 @Composable
 fun ComingSoonScreen(
     title: String,
-    onBack: () -> Unit,
     milestone: String,
     description: String,
+    onBack: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
