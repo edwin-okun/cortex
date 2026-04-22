@@ -30,7 +30,7 @@ class HomeViewModel(
                 val lessons = contentRepository.getAllLessons()
 
                 val resumeProgress = allProgress
-                    .filter { it.masteredAt == null }
+                    .filter { it.masteredAt == null && it.currentStage > 0 }
                     .maxByOrNull { it.lastOpenedAt }
 
                 val resumeLesson = resumeProgress?.let { p ->
@@ -45,7 +45,9 @@ class HomeViewModel(
                 }
 
                 val newLesson = if (resumeLesson == null) {
-                    lessons.firstOrNull { l -> allProgress.none { p -> p.lessonId == l.id } }
+                    lessons.firstOrNull { l ->
+                        allProgress.none { p -> p.lessonId == l.id && p.currentStage > 0 }
+                    }
                 } else null
 
                 HomeUiState(
