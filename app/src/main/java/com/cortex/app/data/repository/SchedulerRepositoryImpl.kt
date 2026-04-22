@@ -10,11 +10,16 @@ import com.cortex.app.domain.scheduler.Fsrs
 import com.cortex.app.domain.scheduler.FsrsCard
 import com.cortex.app.domain.scheduler.FsrsParameters
 import com.cortex.app.domain.scheduler.Rating
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SchedulerRepositoryImpl(
     private val dao: ReviewCardDao,
     private val clock: Clock = Clock.System,
@@ -22,12 +27,25 @@ class SchedulerRepositoryImpl(
 ) : SchedulerRepository {
 
     override fun observeDueCards(): Flow<List<ReviewCard>> =
-        dao.observeDue(clock.now().toEpochMilliseconds()).map { list ->
-            list.map { it.toDomain() }
+        ticker().flatMapLatest {
+            dao.observeDue(clock.now().toEpochMilliseconds()).map { list ->
+                list.map { it.toDomain() }
+            }
         }
 
     override fun observeDueCount(): Flow<Int> =
-        dao.observeDueCount(clock.now().toEpochMilliseconds())
+        ticker().flatMapLatest {
+            dao.observeDueCount(clock.now().toEpochMilliseconds())
+        }
+
+    // Re-evaluates `now` every 60 s so cards crossing their dueAt threshold
+    // appear without requiring a DB write to trigger Room invalidation.
+    private fun ticker(intervalMs: Long = 60_000L): Flow<Unit> = flow {
+        while (true) {
+            emit(Unit)
+            delay(intervalMs)
+        }
+    }
 
     override suspend fun seedCardsForLesson(lessonId: String, cards: List<LessonReviewCard>) {
         val now = clock.now()
