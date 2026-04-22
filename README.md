@@ -42,7 +42,7 @@ Lessons are authored as type-safe Kotlin DSL objects in `data/local/content/less
 | M0 | ✅ Done | Skeleton, theme, nav, Home screen |
 | M1 | ✅ Done | Domain models, lesson DSL, Two Pointers end-to-end, LessonScreen |
 | M2 | ✅ Done | Room schema, ProgressRepository, lesson resume |
-| M3 | ⬜ Next | FSRS-4.5 scheduler port, Review screen |
+| M3 | ✅ Next | FSRS-6 scheduler port, Review screen |
 | M4 | ⬜ | Daily session builder + interleaving |
 | M5 | ⬜ | Compose Canvas visualizations |
 | M6 | ⬜ | Library + Progress screens |
