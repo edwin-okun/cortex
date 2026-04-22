@@ -154,9 +154,13 @@ class SchedulerRepositoryImplTest {
         repo.grade("lesson:q1", Rating.Good)  // step 0 -> step 1
         repo.grade("lesson:q1", Rating.Good)  // graduates
 
-        // After graduation the card is due in N days; far future relative to fixedNow
-        val count = repo.observeDueCount().first()
-        assertEquals("Card due in future after graduating", 0, count)
+        // After graduation the card is due in N days; far future relative to fixedNow.
+        // Use Turbine instead of .first() — Room's InvalidationTracker runs on a background
+        // thread that doesn't cooperate with StandardTestDispatcher's virtual time.
+        repo.observeDueCount().test {
+            assertEquals("Card due in future after graduating", 0, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     // -------------------------------------------------------------------------
