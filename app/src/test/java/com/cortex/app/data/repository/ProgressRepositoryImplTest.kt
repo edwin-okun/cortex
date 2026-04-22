@@ -109,4 +109,21 @@ class ProgressRepositoryImplTest {
         val result = repo.observeProgress("unknown-lesson").first()
         assertNull(result)
     }
+
+    @Test
+    fun `recordLessonOpened creates progress row at stage 0 on first open`() = runTest(testDispatcher) {
+        repo.recordLessonOpened("lesson-1")
+        val progress = repo.observeProgress("lesson-1").first()
+        assertNotNull(progress)
+        assertEquals(0, progress!!.currentStage)
+        assertNull(progress.masteredAt)
+    }
+
+    @Test
+    fun `recordLessonOpened updates lastOpenedAt but preserves stage on subsequent opens`() = runTest(testDispatcher) {
+        repo.recordStageAdvance("lesson-1", 2, 5)
+        repo.recordLessonOpened("lesson-1")
+        val progress = repo.observeProgress("lesson-1").first()!!
+        assertEquals(2, progress.currentStage)
+    }
 }

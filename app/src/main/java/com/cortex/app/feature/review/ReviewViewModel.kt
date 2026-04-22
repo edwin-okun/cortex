@@ -31,13 +31,16 @@ class ReviewViewModel(
 
     init {
         viewModelScope.launch {
-            val due = schedulerRepository.observeDueCards().first()
-            if (due.isEmpty()) {
-                _state.update { ReviewUiState.Empty }
-            } else {
-                queue.addAll(due)
-                showCurrentCard()
+            val due = schedulerRepository.observeDueCards().first { dueCards ->
+                if (dueCards.isEmpty()) {
+                    _state.update { ReviewUiState.Empty }
+                    false
+                } else {
+                    true
+                }
             }
+            queue.addAll(due)
+            showCurrentCard()
         }
     }
 

@@ -164,6 +164,18 @@ class SchedulerRepositoryImplTest {
     // -------------------------------------------------------------------------
 
     @Test
+    fun `observeDueCount re-emits after ticker interval elapses`() = runTest(testDispatcher) {
+        repo.seedCardsForLesson("lesson", listOf(LessonReviewCard("q1", "Prompt", "Answer")))
+
+        repo.observeDueCount().test {
+            assertEquals(1, awaitItem())        // immediate first emission
+            advanceTimeBy(60_001)               // past the 60 s ticker
+            assertEquals(1, awaitItem())        // second emission confirms ticker fired
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `observeDueCards returns cards ordered by dueAt ascending`() = runTest(testDispatcher) {
         repo.seedCardsForLesson(
             "lesson",
