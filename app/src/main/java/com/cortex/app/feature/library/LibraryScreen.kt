@@ -37,7 +37,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun LibraryScreen(
     onBack: () -> Unit,
-    onOpenLesson: (lessonId: String) -> Unit,
+    onOpenLesson: (lessonId: String, restart: Boolean) -> Unit,
     viewModel: LibraryViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -84,7 +84,9 @@ fun LibraryScreen(
                     items(state.lessons, key = { it.lessonId }) { lesson ->
                         LessonCard(
                             lesson = lesson,
-                            onOpenLesson = { onOpenLesson(lesson.lessonId) },
+                            onOpenLesson = {
+                                onOpenLesson(lesson.lessonId, lesson.restartOnOpen)
+                            },
                         )
                     }
                 }
@@ -175,7 +177,10 @@ private fun LessonCard(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = CortexColors.Accent,
                     contentColor = CortexColors.Paper,
+                    disabledContainerColor = CortexColors.Rule,
+                    disabledContentColor = CortexColors.Muted,
                 ),
+                enabled = lesson.isActionEnabled,
             ) {
                 Text(
                     text = lesson.ctaLabel,

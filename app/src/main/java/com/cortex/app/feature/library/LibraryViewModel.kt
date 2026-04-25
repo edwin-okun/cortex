@@ -6,6 +6,7 @@ import com.cortex.app.domain.model.Lesson
 import com.cortex.app.domain.model.LessonStage
 import com.cortex.app.domain.repository.ContentRepository
 import com.cortex.app.domain.repository.ProgressRepository
+import com.cortex.app.domain.usecase.selectAvailableNewLessons
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +33,13 @@ class LibraryViewModel(
                         val progress = allProgress.firstOrNull { it.lessonId == lesson.id }
                         val isMastered = progress?.masteredAt != null
                         val isInProgress = progress != null && !isMastered
+                        val isAvailable = isInProgress ||
+                            isMastered ||
+                            lesson in selectAvailableNewLessons(
+                                allLessons = lessons,
+                                allProgress = allProgress,
+                                maxNewLessons = Int.MAX_VALUE,
+                            )
                         LibraryLessonItem(
                             lessonId = lesson.id,
                             title = lesson.title,
@@ -48,8 +56,11 @@ class LibraryViewModel(
                             ctaLabel = when {
                                 isMastered -> "REVISIT"
                                 isInProgress -> "RESUME"
+                                !isAvailable -> "LOCKED"
                                 else -> "START"
                             },
+                            isActionEnabled = isAvailable,
+                            restartOnOpen = isMastered,
                             progressLabel = when {
                                 isMastered -> "${lesson.stages.size}/${lesson.stages.size} stages"
                                 isInProgress -> "${(progress?.currentStage ?: 0) + 1}/${lesson.stages.size} stages"
@@ -85,5 +96,7 @@ data class LibraryLessonItem(
     val preview: String,
     val status: String,
     val ctaLabel: String,
+    val isActionEnabled: Boolean,
+    val restartOnOpen: Boolean,
     val progressLabel: String?,
 )

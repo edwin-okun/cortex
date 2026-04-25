@@ -22,6 +22,7 @@ class LessonViewModel(
 ) : ViewModel() {
 
     val lessonId: String = checkNotNull(savedStateHandle["lessonId"])
+    private val restart: Boolean = savedStateHandle["restart"] ?: false
 
     private val _state = MutableStateFlow(LessonUiState())
     val state: StateFlow<LessonUiState> = _state.asStateFlow()
@@ -35,7 +36,7 @@ class LessonViewModel(
             }
 
             val savedProgress = progressRepository.observeProgress(lessonId).first()
-            val startStage = savedProgress?.currentStage ?: 0
+            val startStage = if (restart) 0 else savedProgress?.currentStage ?: 0
 
             progressRepository.recordLessonOpened(lessonId)
 

@@ -43,6 +43,7 @@ class SessionViewModel(
     private var completedLessons = 0
     private val ratingCounts = mutableMapOf<Rating, Int>()
     private val startedAt: Instant = clock.now()
+    private var isAdvancing = false
 
     init {
         viewModelScope.launch {
@@ -65,17 +66,23 @@ class SessionViewModel(
     }
 
     fun onGrade(rating: Rating) {
+        if (isAdvancing) return
         val active = _state.value as? SessionUiState.Active ?: return
         val item = active.currentItem as? SessionItem.ReviewCard ?: return
+        isAdvancing = true
         viewModelScope.launch {
-            schedulerRepository.grade(item.card.cardId, rating)
-            ratingCounts[rating] = (ratingCounts[rating] ?: 0) + 1
-            completedReviews++
-            queue.removeFirst()
-            if (queue.isEmpty()) {
-                _state.update { SessionUiState.Done(buildSummary()) }
-            } else {
-                showCurrentItem()
+            try {
+                schedulerRepository.grade(item.card.cardId, rating)
+                ratingCounts[rating] = (ratingCounts[rating] ?: 0) + 1
+                completedReviews++
+                queue.removeFirst()
+                if (queue.isEmpty()) {
+                    _state.update { SessionUiState.Done(buildSummary()) }
+                } else {
+                    showCurrentItem()
+                }
+            } finally {
+                isAdvancing = false
             }
         }
     }
@@ -90,6 +97,8 @@ class SessionViewModel(
 
     /** Called when the user returns from LessonScreen (regardless of completion). */
     fun onLessonReturned() {
+        val active = _state.value as? SessionUiState.Active ?: return
+        if (active.currentItem !is SessionItem.NewLesson) return
         completedLessons++
         queue.removeFirstOrNull()
         if (queue.isEmpty()) {
@@ -97,6 +106,7 @@ class SessionViewModel(
         } else {
             showCurrentItem()
         }
+        isAdvancing = false
     }
 
     private fun showCurrentItem() {
