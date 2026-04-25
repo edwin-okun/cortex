@@ -148,7 +148,10 @@ fun CortexNavHost(
                 )
             }
             composable<CortexRoute.Library> {
-                LibraryScreen(onBack = { navController.popBackStack() })
+                LibraryScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenLesson = { lessonId -> navController.navigate(CortexRoute.Lesson(lessonId)) },
+                )
             }
             composable<CortexRoute.Review> {
                 ReviewScreen(onBack = { navController.navigateToTab(CortexRoute.Home) })
