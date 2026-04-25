@@ -84,8 +84,14 @@ class LessonViewModelTest {
         lessonId: String = "test-lesson",
         lesson: Lesson? = makeLesson(lessonId),
         progress: LessonProgress? = null,
+        restart: Boolean = false,
     ) = LessonViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("lessonId" to lessonId)),
+        savedStateHandle = SavedStateHandle(
+            mapOf(
+                "lessonId" to lessonId,
+                "restart" to restart,
+            ),
+        ),
         getLessonUseCase = makeUseCase(lesson),
         progressRepository = makeProgressRepo(progress),
         schedulerRepository = makeSchedulerRepo(),
@@ -122,6 +128,28 @@ class LessonViewModelTest {
             advanceUntilIdle()
             val ready = awaitItem()
             assertEquals(2, ready.currentStageIndex)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `restart flag ignores saved progress and starts at stage 0`() = runTest(testDispatcher) {
+        val savedProgress = LessonProgress(
+            lessonId = "test-lesson",
+            currentStage = 5,
+            stagesCompleted = 5,
+            startedAt = 1000L,
+            masteredAt = 3000L,
+            lastOpenedAt = 4000L,
+        )
+        val vm = buildVm(progress = savedProgress, restart = true)
+
+        vm.state.test {
+            awaitItem()
+            advanceUntilIdle()
+            val ready = awaitItem()
+            assertEquals(0, ready.currentStageIndex)
+            assertEquals(false, ready.isCompleted)
             cancelAndIgnoreRemainingEvents()
         }
     }

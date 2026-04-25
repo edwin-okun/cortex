@@ -1,6 +1,10 @@
 package com.cortex.app.feature.home
 
 import app.cash.turbine.test
+import com.cortex.app.domain.model.Lesson
+import com.cortex.app.domain.model.LessonProgress
+import com.cortex.app.domain.model.Tier
+import com.cortex.app.domain.model.Track
 import com.cortex.app.domain.repository.ContentRepository
 import com.cortex.app.domain.repository.ProgressRepository
 import com.cortex.app.domain.repository.SchedulerRepository
@@ -64,6 +68,53 @@ class HomeViewModelTest {
             assertNull(ready.newLessonTitle)
             assertEquals(0, ready.streakDays)
             assertNull(ready.resumeLesson)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `stage zero progress is surfaced as resume lesson`() = runTest(testDispatcher) {
+        val lesson = Lesson(
+            id = "two-pointers",
+            track = Track.ALGORITHMS,
+            tier = Tier.FOUNDATIONS,
+            title = "Two Pointers",
+            stages = emptyList(),
+            reviewCards = emptyList(),
+        )
+        val contentRepo = mockk<ContentRepository> {
+            every { getAllLessons() } returns listOf(lesson)
+            every { getLesson("two-pointers") } returns lesson
+        }
+        val progressRepo = mockk<ProgressRepository> {
+            every { observeAllProgress() } returns flowOf(
+                listOf(
+                    LessonProgress(
+                        lessonId = "two-pointers",
+                        currentStage = 0,
+                        stagesCompleted = 0,
+                        startedAt = 1_000L,
+                        masteredAt = null,
+                        lastOpenedAt = 2_000L,
+                    ),
+                ),
+            )
+        }
+        val schedulerRepo = mockk<SchedulerRepository> {
+            every { observeDueCount() } returns flowOf(0)
+        }
+
+        val vm = HomeViewModel(contentRepo, progressRepo, schedulerRepo)
+
+        vm.state.test {
+            awaitItem()
+            advanceUntilIdle()
+
+            val ready = awaitItem()
+            assertEquals(false, ready.isLoading)
+            assertEquals("two-pointers", ready.resumeLesson?.lessonId)
+            assertEquals("Two Pointers", ready.resumeLesson?.title)
+            assertEquals(0, ready.resumeLesson?.currentStage)
             cancelAndIgnoreRemainingEvents()
         }
     }

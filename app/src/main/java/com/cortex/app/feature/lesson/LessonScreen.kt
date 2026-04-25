@@ -41,6 +41,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun LessonScreen(
     onBack: () -> Unit,
+    onLessonCompleted: () -> Unit = {},
     viewModel: LessonViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -50,15 +51,21 @@ fun LessonScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
+        // When the lesson is already complete, the top-bar back must also fire onLessonCompleted
+        // so the session queue advances regardless of whether the user uses the CTA or the arrow.
         CortexTopBar(
             title = state.lesson?.title ?: "",
-            onBack = onBack,
+            onBack = if (state.isCompleted) {
+                { onLessonCompleted(); onBack() }
+            } else {
+                onBack
+            },
         )
 
         when {
             state.isLoading -> LoadingContent()
             state.isError -> ErrorContent(onBack)
-            state.isCompleted -> CompletedContent(onBack)
+            state.isCompleted -> CompletedContent(onBack, onLessonCompleted)
             else -> {
                 val lesson = state.lesson ?: return
                 val stage = lesson.stages.getOrNull(state.currentStageIndex) ?: return
@@ -437,7 +444,7 @@ private fun ErrorContent(onBack: () -> Unit) {
 }
 
 @Composable
-private fun CompletedContent(onBack: () -> Unit) {
+private fun CompletedContent(onBack: () -> Unit, onLessonCompleted: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -457,7 +464,13 @@ private fun CompletedContent(onBack: () -> Unit) {
             color = CortexColors.Muted,
         )
         Spacer(Modifier.height(CortexSpacing.xxl))
-        AdvanceButton(label = "← HOME", onClick = onBack)
+        AdvanceButton(
+            label = "← BACK",
+            onClick = {
+                onLessonCompleted()
+                onBack()
+            },
+        )
     }
 }
 

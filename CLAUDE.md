@@ -16,7 +16,7 @@ Cortex is an Android app that teaches essential algorithms and wealth-thinking f
 - **Pattern:** MVVM. ViewModel exposes `StateFlow<UiState>`, Screen collects via `collectAsStateWithLifecycle`.
 - **DI:** Koin 4.0 (not Hilt — lighter for a solo project)
 - **Local DB:** Room + SQLite (user progress only; content is bundled Kotlin)
-- **Navigation:** Compose Navigation 2.8 with type-safe `@Serializable` routes
+- **Navigation:** Compose Navigation 2.8 with type-safe `@Serializable` routes. `CortexNavHost` wraps everything in a `Scaffold` with a Material3 `NavigationBar` (Home / Review / Library / Progress tabs). The bar is hidden on the Lesson detail screen.
 - **No backend.** No network. Offline-first.
 - **Teach-back feature using Anthropic API is explicitly deferred to v2.**
 
@@ -78,7 +78,7 @@ Each lesson spawns review cards that enter the FSRS queue. Mastery criteria:
 ## What's done
 
 ### M0 — Skeleton
-Gradle wiring, version catalog, Compose BOM 2024.10. `CortexTheme` + full token set (`CortexColors`, `CortexSpacing`, `CortexTypography`). Koin bootstrapped in `CortexApplication`. `MainActivity` hosts a single `CortexNavHost`. `HomeScreen` fully designed (editorial dark theme, TODAY card, MetaTiles, footer). `Library / Review / Progress` are `ComingSoonScreen` placeholders. `HomeViewModelTest` with Turbine verifies the test stack.
+Gradle wiring, version catalog, Compose BOM 2024.10. `CortexTheme` + full token set (`CortexColors`, `CortexSpacing`, `CortexTypography`). Koin bootstrapped in `CortexApplication`. `MainActivity` hosts a single `CortexNavHost`. `HomeScreen` fully designed (editorial dark theme, TODAY card, MetaTiles, footer). `Library / Review / Progress` are `ComingSoonScreen` placeholders. `HomeViewModelTest` with Turbine verifies the test stack. **Post-M3 addition:** Material3 `NavigationBar` added to `CortexNavHost` (Home / Review / Library / Progress); hidden on Lesson screen. `HomeViewModel` resumeLesson/newLesson logic fixed to require `currentStage > 0`.
 
 ### M1 — Lesson engine
 Domain models: `Lesson`, `LessonStage` (sealed: Hook, Intuition, WorkedExample, FadedPractice, TransferProblem), `Track`, `Tier`, `VisualSpec` (sealed, text fallback only — Canvas is M5), `LessonReviewCard`. Kotlin DSL (`LessonDsl.kt`) with builder pattern. `ContentRepositoryImpl` backed by `LessonCatalog` (in-memory). `GetLessonUseCase`. `LessonScreen` + `LessonViewModel` (stage paging, `SavedStateHandle`). **Two Pointers** authored end-to-end as the reference lesson.
@@ -118,6 +118,8 @@ Canvas visualizations are M5. `VisualSpec` is a sealed class; `LessonScreen` ren
 - **Injectable `Clock` in `SchedulerRepositoryImpl`:** `kotlinx.datetime.Clock` injected (defaults to `Clock.System`) so tests can pass a fixed `Instant` without mocking system time.
 - **`stopKoin()` in Robolectric `@After`:** Robolectric spins up `CortexApplication` which calls `startKoin()`; without `stopKoin()` in teardown, successive test methods throw `KoinApplicationAlreadyStartedException`.
 - **`observeDueCount()` is a point-in-time snapshot:** The query passes `clock.now()` at subscription time, not a live clock. Cards become "newly due" only when the user re-opens the app and a new subscription is created. Acceptable for M3; revisit in M4.
+- **`resumeLesson` requires `currentStage > 0`:** `recordLessonOpened` creates a progress row immediately on first open (stage 0). Without this guard, a freshly-opened-and-abandoned lesson would suppress the "new lesson" CTA. CONTINUE only shows once the user has actually advanced past the first stage. `newLesson` uses the same predicate: a lesson is "new" if it has no progress row with `currentStage > 0`.
+- **Bottom nav tab switching uses `popUpTo(Home) + launchSingleTop + restoreState`:** Prevents duplicate tab destinations from stacking on the back stack. Lesson screen is a push destination on top of whatever tab launched it, so it sits outside this pattern and hides the nav bar entirely.
 
 ## Known issues / tech debt
 
@@ -142,10 +144,10 @@ app/src/main/java/com/cortex/app/
 │   │   └── AppModule.kt          Koin module (DB, DAOs, repos, use cases, ViewModels)
 │   ├── navigation/
 │   │   ├── CortexRoute.kt        @Serializable route sealed class
-│   │   └── CortexNavHost.kt      NavHost + screen wiring
+│   │   └── CortexNavHost.kt      Scaffold + NavigationBar (4 tabs) + NavHost; bar hidden on Lesson
 │   └── ui/
 │       ├── components/
-│       │   ├── ComingSoonScreen.kt
+│       │   ├── ComingSoonScreen.kt   onBack optional (nullable); no back arrow when null
 │       │   └── CortexTopBar.kt
 │       └── theme/
 │           ├── Color.kt          CortexColors palette
@@ -197,7 +199,7 @@ app/src/main/java/com/cortex/app/
 └── feature/
     ├── home/
     │   ├── HomeScreen.kt         TODAY card, MetaTiles, due-count badge
-    │   └── HomeViewModel.kt      combines progress + due count
+    │   └── HomeViewModel.kt      combines progress + due count; resumeLesson/newLesson gated on currentStage > 0
     ├── lesson/
     │   ├── LessonScreen.kt       stage pager (Hook→Transfer)
     │   └── LessonViewModel.kt    stage advance, seeds FSRS cards on completion

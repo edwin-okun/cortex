@@ -8,7 +8,10 @@ sealed interface CortexRoute {
     data object Home : CortexRoute
 
     @Serializable
-    data class Lesson(val lessonId: String) : CortexRoute
+    data class Lesson(
+        val lessonId: String,
+        val restart: Boolean = false,
+    ) : CortexRoute
 
     @Serializable
     data object Library : CortexRoute
@@ -18,4 +21,7 @@ sealed interface CortexRoute {
 
     @Serializable
     data object Progress : CortexRoute
+
+    @Serializable
+    data object Session : CortexRoute
 }

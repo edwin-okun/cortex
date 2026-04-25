@@ -1,7 +1,6 @@
 package com.cortex.app.feature.review
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,20 +14,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cortex.app.core.ui.components.CortexTopBar
+import com.cortex.app.core.ui.components.GradeButtons
+import com.cortex.app.core.ui.components.ReviewCardContent
 import com.cortex.app.core.ui.theme.CortexColors
 import com.cortex.app.core.ui.theme.CortexSpacing
 import com.cortex.app.domain.scheduler.Rating
@@ -77,12 +75,7 @@ private fun ReviewingState(
     ) {
         Spacer(Modifier.height(CortexSpacing.lg))
 
-        // Progress header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "${state.reviewedCount} / $total",
                 style = MaterialTheme.typography.labelSmall,
@@ -99,36 +92,15 @@ private fun ReviewingState(
 
         Spacer(Modifier.weight(1f))
 
-        // Card prompt — the hero
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = state.card.prompt,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
-            )
-
-            if (state.isAnswerVisible) {
-                Spacer(Modifier.height(CortexSpacing.xl))
-                HorizontalDivider(color = CortexColors.Rule)
-                Spacer(Modifier.height(CortexSpacing.xl))
-                Text(
-                    text = state.card.answer,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = CortexColors.Muted,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
+        ReviewCardContent(
+            prompt = state.card.prompt,
+            answer = state.card.answer,
+            isAnswerVisible = state.isAnswerVisible,
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+        )
 
         Spacer(Modifier.weight(1f))
 
-        // Action area
         if (!state.isAnswerVisible) {
             Button(
                 onClick = onReveal,
@@ -146,71 +118,6 @@ private fun ReviewingState(
         }
 
         Spacer(Modifier.height(CortexSpacing.xl))
-    }
-}
-
-@Composable
-private fun GradeButtons(labels: ButtonLabels, onGrade: (Rating) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(CortexSpacing.sm),
-    ) {
-        GradeButton(
-            modifier = Modifier.weight(1f),
-            label = "Again",
-            interval = labels.again,
-            containerColor = CortexColors.Danger,
-            onClick = { onGrade(Rating.Again) },
-        )
-        GradeButton(
-            modifier = Modifier.weight(1f),
-            label = "Hard",
-            interval = labels.hard,
-            containerColor = CortexColors.Warning,
-            onClick = { onGrade(Rating.Hard) },
-        )
-        GradeButton(
-            modifier = Modifier.weight(1f),
-            label = "Good",
-            interval = labels.good,
-            containerColor = CortexColors.Accent,
-            onClick = { onGrade(Rating.Good) },
-        )
-        GradeButton(
-            modifier = Modifier.weight(1f),
-            label = "Easy",
-            interval = labels.easy,
-            containerColor = CortexColors.Success,
-            onClick = { onGrade(Rating.Easy) },
-        )
-    }
-}
-
-@Composable
-private fun GradeButton(
-    modifier: Modifier = Modifier,
-    label: String,
-    interval: String,
-    containerColor: androidx.compose.ui.graphics.Color,
-    onClick: () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(4.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = CortexColors.Paper,
-        ),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = CortexSpacing.sm,
-            vertical = CortexSpacing.sm,
-        ),
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, style = MaterialTheme.typography.labelSmall)
-            Text(interval, style = MaterialTheme.typography.labelSmall, color = CortexColors.Paper.copy(alpha = 0.7f))
-        }
     }
 }
 

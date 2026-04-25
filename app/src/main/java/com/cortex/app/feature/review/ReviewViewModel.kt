@@ -2,6 +2,7 @@ package com.cortex.app.feature.review
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cortex.app.core.ui.components.ButtonLabels
 import com.cortex.app.domain.model.ReviewCard
 import com.cortex.app.domain.repository.SchedulerRepository
 import com.cortex.app.domain.scheduler.Fsrs
@@ -28,6 +29,7 @@ class ReviewViewModel(
     // so the current card never disappears mid-session.
     private val queue = ArrayDeque<ReviewCard>()
     private var reviewedCount = 0
+    private var isGrading = false
 
     init {
         viewModelScope.launch {
@@ -50,15 +52,21 @@ class ReviewViewModel(
     }
 
     fun onGrade(rating: Rating) {
+        if (isGrading) return
         val current = _state.value as? ReviewUiState.Reviewing ?: return
+        isGrading = true
         viewModelScope.launch {
-            schedulerRepository.grade(current.card.cardId, rating)
-            reviewedCount++
-            queue.removeFirst()
-            if (queue.isEmpty()) {
-                _state.update { ReviewUiState.Done(reviewedCount) }
-            } else {
-                showCurrentCard()
+            try {
+                schedulerRepository.grade(current.card.cardId, rating)
+                reviewedCount++
+                queue.removeFirst()
+                if (queue.isEmpty()) {
+                    _state.update { ReviewUiState.Done(reviewedCount) }
+                } else {
+                    showCurrentCard()
+                }
+            } finally {
+                isGrading = false
             }
         }
     }
@@ -127,10 +135,3 @@ sealed interface ReviewUiState {
         val buttonLabels: ButtonLabels,
     ) : ReviewUiState
 }
-
-data class ButtonLabels(
-    val again: String,
-    val hard: String,
-    val good: String,
-    val easy: String,
-)

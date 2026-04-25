@@ -37,8 +37,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreen(
-    onBeginReview: () -> Unit,
-    onBeginLesson: (lessonId: String) -> Unit,
+    onBeginSession: () -> Unit,
     onContinueLesson: (lessonId: String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenProgress: () -> Unit,
@@ -70,11 +69,9 @@ fun HomeScreen(
         TodayCard(
             dueReviewCount = state.dueReviewCount,
             newLessonTitle = state.newLessonTitle,
-            // Reviews take priority; fall back to starting a new lesson
-            onBegin = {
-                if (state.dueReviewCount > 0) onBeginReview()
-                else state.newLessonId?.let(onBeginLesson)
-            },
+            hasResumeLesson = state.resumeLesson != null,
+            onBegin = onBeginSession,
+            onOpenLibrary = onOpenLibrary,
         )
         Spacer(Modifier.height(CortexSpacing.lg))
         MetaRow(
@@ -173,8 +170,13 @@ private fun Greeting(greeting: String) {
 private fun TodayCard(
     dueReviewCount: Int,
     newLessonTitle: String?,
+    hasResumeLesson: Boolean,
     onBegin: () -> Unit,
+    onOpenLibrary: () -> Unit,
 ) {
+    // Enabled only when the session will have actual content: reviews or a new lesson.
+    // A resume-only lesson doesn't count — the CONTINUE card handles that separately.
+    val hasContent = dueReviewCount > 0 || newLessonTitle != null
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(4.dp),
@@ -189,7 +191,7 @@ private fun TodayCard(
             )
             Spacer(Modifier.height(CortexSpacing.md))
 
-            if (dueReviewCount == 0 && newLessonTitle == null) {
+            if (!hasContent) {
                 Text(
                     text = "All caught up.",
                     style = MaterialTheme.typography.headlineMedium,
@@ -197,17 +199,39 @@ private fun TodayCard(
                 )
                 Spacer(Modifier.height(CortexSpacing.sm))
                 Text(
-                    text = "No new lessons or reviews due.",
+                    text = if (hasResumeLesson) {
+                        "No reviews due. Continue your lesson above."
+                    } else {
+                        "No reviews due and no lesson queued here yet. Open Library to start or revisit a lesson."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = CortexColors.Muted,
                 )
+
+                if (!hasResumeLesson) {
+                    Spacer(Modifier.height(CortexSpacing.xl))
+                    OutlinedButton(
+                        onClick = onOpenLibrary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(2.dp),
+                        border = BorderStroke(1.dp, CortexColors.Accent),
+                    ) {
+                        Text(
+                            text = "OPEN LIBRARY",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = CortexColors.Accent,
+                        )
+                    }
+                }
             } else {
                 if (dueReviewCount > 0) {
                     StatLine(value = dueReviewCount.toString(), label = "cards due for review")
                     Spacer(Modifier.height(CortexSpacing.sm))
                 }
                 if (newLessonTitle != null) {
-                    StatLine(value = "1", label = "new lesson: $newLessonTitle")
+                    StatLine(value = "→", label = "Begin: $newLessonTitle")
                 }
             }
 
@@ -224,7 +248,7 @@ private fun TodayCard(
                     disabledContainerColor = CortexColors.Rule,
                     disabledContentColor = CortexColors.Muted,
                 ),
-                enabled = dueReviewCount > 0 || newLessonTitle != null,
+                enabled = hasContent,
             ) {
                 Text(
                     text = "BEGIN SESSION",

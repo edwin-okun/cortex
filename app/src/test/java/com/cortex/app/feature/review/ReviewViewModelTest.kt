@@ -4,11 +4,14 @@ import app.cash.turbine.test
 import com.cortex.app.domain.model.ReviewCard
 import com.cortex.app.domain.repository.SchedulerRepository
 import com.cortex.app.domain.scheduler.CardState
+import com.cortex.app.domain.scheduler.Rating
 import io.mockk.every
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -61,15 +64,56 @@ class ReviewViewModelTest {
         }
     }
 
-    private fun makeSchedulerRepo(dueCards: Flow<List<ReviewCard>>): SchedulerRepository = mockk {
+    @Test
+    fun `duplicate grade taps only grade and advance one card`() = runTest(testDispatcher) {
+        val dueCards = MutableStateFlow(
+            listOf(
+                makeReviewCard("lesson:q1"),
+                makeReviewCard("lesson:q2"),
+            ),
+        )
+        val gradeStarted = CompletableDeferred<Unit>()
+        val allowGradeToFinish = CompletableDeferred<Unit>()
+        val repo = makeSchedulerRepo(dueCards) {
+            gradeStarted.complete(Unit)
+            allowGradeToFinish.await()
+        }
+        val vm = ReviewViewModel(repo)
+
+        vm.state.test {
+            assertEquals(ReviewUiState.Loading, awaitItem())
+            advanceUntilIdle()
+            awaitItem() as ReviewUiState.Reviewing
+
+            vm.onGrade(Rating.Good)
+            advanceUntilIdle()
+            gradeStarted.await()
+
+            vm.onGrade(Rating.Easy)
+            allowGradeToFinish.complete(Unit)
+            advanceUntilIdle()
+
+            val reviewing = awaitItem() as ReviewUiState.Reviewing
+            assertEquals("lesson:q2", reviewing.card.cardId)
+            assertEquals(1, reviewing.reviewedCount)
+            coVerify(exactly = 1) { repo.grade("lesson:q1", any()) }
+            coVerify(exactly = 0) { repo.grade("lesson:q2", any()) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private fun makeSchedulerRepo(
+        dueCards: Flow<List<ReviewCard>>,
+        onGrade: suspend () -> Unit = {},
+    ): SchedulerRepository = mockk {
         coEvery { seedCardsForLesson(any(), any()) } just runs
-        coEvery { grade(any(), any()) } just runs
+        coEvery { grade(any(), any()) } coAnswers { onGrade() }
         every { observeDueCards() } returns dueCards
         every { observeDueCount() } returns MutableStateFlow(0)
     }
 
-    private fun makeReviewCard() = ReviewCard(
-        cardId = "lesson:q1",
+    private fun makeReviewCard(cardId: String = "lesson:q1") = ReviewCard(
+        cardId = cardId,
         lessonId = "lesson",
         prompt = "Prompt",
         answer = "Answer",
