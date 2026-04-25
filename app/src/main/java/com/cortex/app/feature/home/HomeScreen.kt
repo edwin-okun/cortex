@@ -69,7 +69,9 @@ fun HomeScreen(
         TodayCard(
             dueReviewCount = state.dueReviewCount,
             newLessonTitle = state.newLessonTitle,
+            hasResumeLesson = state.resumeLesson != null,
             onBegin = onBeginSession,
+            onOpenLibrary = onOpenLibrary,
         )
         Spacer(Modifier.height(CortexSpacing.lg))
         MetaRow(
@@ -168,7 +170,9 @@ private fun Greeting(greeting: String) {
 private fun TodayCard(
     dueReviewCount: Int,
     newLessonTitle: String?,
+    hasResumeLesson: Boolean,
     onBegin: () -> Unit,
+    onOpenLibrary: () -> Unit,
 ) {
     // Enabled only when the session will have actual content: reviews or a new lesson.
     // A resume-only lesson doesn't count — the CONTINUE card handles that separately.
@@ -195,10 +199,32 @@ private fun TodayCard(
                 )
                 Spacer(Modifier.height(CortexSpacing.sm))
                 Text(
-                    text = "No reviews due. Continue your lesson above.",
+                    text = if (hasResumeLesson) {
+                        "No reviews due. Continue your lesson above."
+                    } else {
+                        "No reviews due and no lesson queued here yet. Open Library to start or revisit a lesson."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = CortexColors.Muted,
                 )
+
+                if (!hasResumeLesson) {
+                    Spacer(Modifier.height(CortexSpacing.xl))
+                    OutlinedButton(
+                        onClick = onOpenLibrary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(2.dp),
+                        border = BorderStroke(1.dp, CortexColors.Accent),
+                    ) {
+                        Text(
+                            text = "OPEN LIBRARY",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = CortexColors.Accent,
+                        )
+                    }
+                }
             } else {
                 if (dueReviewCount > 0) {
                     StatLine(value = dueReviewCount.toString(), label = "cards due for review")
