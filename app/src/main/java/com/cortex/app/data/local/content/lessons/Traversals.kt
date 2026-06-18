@@ -171,11 +171,10 @@ val Traversals = lesson("traversals") {
         prompt = """
             A CI system models build steps as a DAG. Nodes are step names; edges
             point from a step to its dependents. When step X fails, the system
-            must re-run X and every step that depends on it (directly or transitively),
-            in the correct order.
-            Given the DAG and the name of the failed step, return all steps that
-            must be re-run. What traversal strategy produces this set, and why
-            is the visited set essential here?
+            must re-run X and every step that depends on it (directly or transitively).
+            Given the DAG and the name of the failed step, return the complete set of
+            steps that must be re-run. What traversal strategy identifies this set,
+            and why is the visited set essential here?
         """.trimIndent()
         solution = """
             DFS (or BFS) from the failed step, following edges in the dependent direction.

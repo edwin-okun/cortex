@@ -58,6 +58,7 @@ val HashMaps = lesson("hash-maps") {
         step("Frequency count: count error codes in ['ERR_404', 'ERR_500', 'ERR_404', 'ERR_404'].")
         step(
             """
+            events = ['ERR_404', 'ERR_500', 'ERR_404', 'ERR_404']
             counts = {}
             for code in events:
                 counts[code] = counts.get(code, 0) + 1

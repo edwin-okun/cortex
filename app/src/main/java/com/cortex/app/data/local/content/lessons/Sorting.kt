@@ -111,9 +111,8 @@ val Sorting = lesson("sorting") {
                             best = diff
                             result = (arr[i], arr[i+1])
                     return result
-                # closest_pair([15,3,8,1,10,6]) -> (7, 8) ... actually (7,8) no:
-                # sorted: [1,3,6,8,10,15]; diffs: 2,3,2,2,5 -> first min=2 at (1,3)
-                # result: (1, 3)
+                # sorted: [1, 3, 6, 8, 10, 15]; diffs: 2, 3, 2, 2, 5
+                # closest_pair([15,3,8,1,10,6]) -> (1, 3)
             """.trimIndent()
         }
         problem(id = "sort-p3", scaffold = 0) {
