@@ -65,7 +65,7 @@ val Sorting = lesson("sorting") {
                         best = diff
                         pair = (arr[i], arr[i+1])
                 return pair
-            # closest_pair([10, 3, 17, 5, 4]) -> (4, 5); adjacent after sort.
+            # closest_pair([10, 3, 17, 5, 4]) -> (3, 4); adjacent after sort.
             """.trimIndent()
         )
         step("Without sort, closest pair requires O(n²) brute force. Sort-first: O(n log n + n) = O(n log n).")
@@ -122,22 +122,16 @@ val Sorting = lesson("sorting") {
             """.trimIndent()
             answer = """
                 def count_pairs_with_diff(arr, k):
-                    arr.sort()              # [1, 2, 3, 4, 5]
-                    count, left, right = 0, 0, 1
-                    while right < len(arr):
-                        diff = arr[right] - arr[left]
-                        if diff == k:
-                            count += 1
-                            left += 1
-                            right += 1
-                        elif diff < k:
-                            right += 1
-                        else:
-                            left += 1
-                        if left == right:
-                            right += 1
+                    freq = {}
+                    for n in arr:
+                        freq[n] = freq.get(n, 0) + 1
+                    count = 0
+                    for n in freq:
+                        if n + k in freq:
+                            count += freq[n] * freq[n + k]
                     return count
                 # count_pairs_with_diff([1,5,3,4,2], 2) -> 3
+                # Works for duplicates too: freq[n] * freq[n+k] counts all index pairs.
             """.trimIndent()
         }
     }

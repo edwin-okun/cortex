@@ -100,16 +100,17 @@ val Recursion = lesson("recursion") {
             prompt = "Generate all permutations of a list of distinct integers using backtracking."
             answer = """
                 def permutations(nums):
+                    nums = list(nums)   # copy so caller's list is unchanged
                     result = []
-                    def backtrack(current, remaining):
-                        if not remaining:
-                            result.append(list(current))
+                    def backtrack(start):
+                        if start == len(nums):
+                            result.append(list(nums))
                             return
-                        for i in range(len(remaining)):
-                            current.append(remaining[i])
-                            backtrack(current, remaining[:i] + remaining[i+1:])
-                            current.pop()
-                    backtrack([], nums)
+                        for i in range(start, len(nums)):
+                            nums[start], nums[i] = nums[i], nums[start]   # choose
+                            backtrack(start + 1)                            # recurse
+                            nums[start], nums[i] = nums[i], nums[start]   # undo
+                    backtrack(0)
                     return result
                 # permutations([1, 2, 3]) -> 6 permutations
             """.trimIndent()

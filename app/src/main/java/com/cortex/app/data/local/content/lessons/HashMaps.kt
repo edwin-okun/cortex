@@ -70,14 +70,14 @@ val HashMaps = lesson("hash-maps") {
 
     fadedPractice {
         problem(id = "hm-p1", scaffold = 2) {
-            prompt = "Count the frequency of each character in the string 'backend'."
+            prompt = "Count the frequency of each character in the string 'deadlock'."
             hint("Iterate over each character. Use a dict: freq[ch] = freq.get(ch, 0) + 1.")
-            hint("After the loop, freq should be {'b':1,'a':1,'c':1,'k':1,'e':2,'n':1,'d':1}.")
+            hint("After the loop, freq should be {'d':2,'e':1,'a':1,'l':1,'o':1,'c':1,'k':1}.")
             answer = """
                 freq = {}
-                for ch in 'backend':
+                for ch in 'deadlock':
                     freq[ch] = freq.get(ch, 0) + 1
-                # {'b':1,'a':1,'c':1,'k':1,'e':2,'n':1,'d':1}
+                # {'d':2,'e':1,'a':1,'l':1,'o':1,'c':1,'k':1}
             """.trimIndent()
         }
         problem(id = "hm-p2", scaffold = 1) {
