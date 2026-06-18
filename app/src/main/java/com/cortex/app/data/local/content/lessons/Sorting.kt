@@ -217,7 +217,8 @@ val Sorting = lesson("sorting") {
             front = "What algorithm does Python use for list.sort(), and what are its key properties?",
             back = "Timsort — a hybrid of merge sort and insertion sort. " +
                 "O(n log n) worst case, O(n) best case on already-sorted or nearly-sorted data " +
-                "(it detects natural runs). Stable. In-place (O(n) auxiliary space for merging). " +
+                "(it detects natural runs). Stable. Mutates the list in place; uses O(n) " +
+                "auxiliary space for merge operations (not O(1) — it is not an in-place sort). " +
                 "Same algorithm is used in Java's Arrays.sort() for objects.",
         )
     }

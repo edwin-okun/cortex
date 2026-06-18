@@ -70,26 +70,28 @@ val Recursion = lesson("recursion") {
     fadedPractice {
         problem(id = "rec-p1", scaffold = 2) {
             prompt = "Write a recursive function that returns the sum of a list of integers."
-            hint("Base case: empty list returns 0.")
-            hint("Recursive case: return nums[0] + sum_list(nums[1:]).")
+            hint("Base case: index equals len(nums), return 0.")
+            hint("Recursive case: return nums[i] + sum_list(nums, i + 1). Pass an index, not a slice, to stay O(n).")
             answer = """
-                def sum_list(nums):
-                    if not nums:
+                def sum_list(nums, i=0):
+                    if i == len(nums):
                         return 0
-                    return nums[0] + sum_list(nums[1:])
+                    return nums[i] + sum_list(nums, i + 1)
                 # sum_list([1, 2, 3, 4]) -> 10
             """.trimIndent()
         }
         problem(id = "rec-p2", scaffold = 1) {
             prompt = "Write a recursive function that checks whether a string is a palindrome."
-            hint("Base case: strings of length 0 or 1 are palindromes. Compare first and last characters, then recurse on the middle slice.")
+            hint("Use left and right indices instead of slicing. Base case: left >= right. Compare s[left] and s[right], then recurse with left+1, right-1.")
             answer = """
-                def is_palindrome(s):
-                    if len(s) <= 1:
+                def is_palindrome(s, left=0, right=None):
+                    if right is None:
+                        right = len(s) - 1
+                    if left >= right:
                         return True
-                    if s[0] != s[-1]:
+                    if s[left] != s[right]:
                         return False
-                    return is_palindrome(s[1:-1])
+                    return is_palindrome(s, left + 1, right - 1)
                 # is_palindrome("racecar") -> True
                 # is_palindrome("hello")   -> False
             """.trimIndent()

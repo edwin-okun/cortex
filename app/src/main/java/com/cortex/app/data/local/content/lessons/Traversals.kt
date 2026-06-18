@@ -57,7 +57,7 @@ val Traversals = lesson("traversals") {
                     node = path[-1]
                     if node == end:
                         return path
-                    for neighbor in graph[node]:
+                    for neighbor in graph.get(node, []):
                         if neighbor not in visited:
                             visited.add(neighbor)
                             queue.append(path + [neighbor])
@@ -79,7 +79,7 @@ val Traversals = lesson("traversals") {
                 if start == end:
                     return True
                 visited.add(start)
-                for neighbor in graph[start]:
+                for neighbor in graph.get(start, []):
                     if neighbor not in visited:
                         if dfs_reachable(graph, neighbor, end, visited):
                             return True
