@@ -129,16 +129,18 @@ val Traversals = lesson("traversals") {
             hint("Use DFS or BFS with a visited set to avoid revisiting nodes in cycles.")
             answer = """
                 def path_exists(graph, src, dst):
-                    visited = set()
+                    if src == dst:
+                        return True
+                    visited = {src}
                     stack = [src]
                     while stack:
                         node = stack.pop()
-                        if node == dst:
-                            return True
-                        if node in visited:
-                            continue
-                        visited.add(node)
-                        stack.extend(graph.get(node, []))
+                        for neighbor in graph.get(node, []):
+                            if neighbor == dst:
+                                return True
+                            if neighbor not in visited:
+                                visited.add(neighbor)   # mark on push, not pop
+                                stack.append(neighbor)
                     return False
             """.trimIndent()
         }
